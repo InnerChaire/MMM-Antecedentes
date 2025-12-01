@@ -5,6 +5,7 @@ Module.register("MMM_Antecedentes", {
 
   start: function() {
     this.pregunta = "Cargando pregunta...";
+    this.inputTexto = "";
     this.getPregunta();
   },
 
@@ -28,41 +29,99 @@ Module.register("MMM_Antecedentes", {
   },
 
   // Enviar respuesta a Python
-  enviarRespuesta: function(respuesta) {
+  enviarRespuesta: function() {
+    if (this.inputTexto.trim() === "") {
+      console.log("Respuesta vacía");
+      return;
+    }
+
     fetch(this.config.serverURL + "/respuesta", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ respuesta: respuesta })
+      body: JSON.stringify({ respuesta: this.inputTexto })
     })
-    .then(() => console.log("Respuesta enviada:", respuesta))
+    .then(() => {
+      console.log("Respuesta enviada:", this.inputTexto);
+      this.inputTexto = "";
+      this.updateDom();
+    })
     .catch(err => console.error(err));
+  },
+
+  agregarLetra: function(letra) {
+    this.inputTexto += letra;
+    this.updateDom();
+  },
+
+  borrarLetra: function() {
+    this.inputTexto = this.inputTexto.slice(0, -1);
+    this.updateDom();
   },
 
   getDom: function() {
     var wrapper = document.createElement("div");
     wrapper.className = "antecedentes-wrapper";
 
+    // Pregunta
     var preguntaDiv = document.createElement("div");
     preguntaDiv.className = "pregunta";
     preguntaDiv.innerHTML = this.pregunta;
     wrapper.appendChild(preguntaDiv);
 
-    var botones = document.createElement("div");
-    botones.className = "botones";
+    // INPUT VISUAL
+    var inputDiv = document.createElement("div");
+    inputDiv.className = "input-visual";
+    inputDiv.innerHTML = this.inputTexto || "Escribe tu respuesta...";
+    wrapper.appendChild(inputDiv);
 
-    var btnSi = document.createElement("button");
-    btnSi.innerHTML = "Sí";
-    btnSi.onclick = () => this.enviarRespuesta("Sí");
-    botones.appendChild(btnSi);
+    // TECLADO
+    const teclado = [
+      ["Q","W","E","R","T","Y","U","I","O","P"],
+      ["A","S","D","F","G","H","J","K","L"],
+      ["Z","X","C","V","B","N","M"],
+      ["0","1","2","3","4","5","6","7","8","9"]
+    ];
 
-    var btnNo = document.createElement("button");
-    btnNo.innerHTML = "No";
-    btnNo.onclick = () => this.enviarRespuesta("No");
-    botones.appendChild(btnNo);
+    var tecladoDiv = document.createElement("div");
+    tecladoDiv.className = "teclado";
 
-    wrapper.appendChild(botones);
+    teclado.forEach(fila => {
+      var filaDiv = document.createElement("div");
+      filaDiv.className = "fila-teclado";
+
+      fila.forEach(letra => {
+        var btn = document.createElement("button");
+        btn.innerHTML = letra;
+        btn.onclick = () => this.agregarLetra(letra);
+        filaDiv.appendChild(btn);
+      });
+
+      tecladoDiv.appendChild(filaDiv);
+    });
+
+    // BOTONES ESPECIALES
+    var filaEspecial = document.createElement("div");
+    filaEspecial.className = "fila-teclado";
+
+    var espacioBtn = document.createElement("button");
+    espacioBtn.innerHTML = "Espacio";
+    espacioBtn.onclick = () => this.agregarLetra(" ");
+    filaEspecial.appendChild(espacioBtn);
+
+    var borrarBtn = document.createElement("button");
+    borrarBtn.innerHTML = "Borrar";
+    borrarBtn.onclick = () => this.borrarLetra();
+    filaEspecial.appendChild(borrarBtn);
+
+    var enviarBtn = document.createElement("button");
+    enviarBtn.innerHTML = "Enviar";
+    enviarBtn.onclick = () => this.enviarRespuesta();
+    filaEspecial.appendChild(enviarBtn);
+
+    tecladoDiv.appendChild(filaEspecial);
+
+    wrapper.appendChild(tecladoDiv);
 
     return wrapper;
   }
 });
-
